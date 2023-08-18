@@ -2,6 +2,7 @@ package com.example.api.service;
 
 import com.example.api.domain.Coupon;
 import com.example.api.producer.CouponCreateProducer;
+import com.example.api.repository.AppliedUserRepository;
 import com.example.api.repository.CouponCountRepository;
 import com.example.api.repository.CouponRepository;
 import org.springframework.stereotype.Service;
@@ -15,13 +16,29 @@ public class ApplyService {
 
     private final CouponCreateProducer couponCreateProducer;
 
-    public ApplyService(CouponRepository couponRepository, CouponCountRepository couponCountRepository, CouponCreateProducer couponCreateProducer) {
+    private final AppliedUserRepository appliedUserRepository;
+
+    public ApplyService(
+            CouponRepository couponRepository,
+            CouponCountRepository couponCountRepository,
+            CouponCreateProducer couponCreateProducer,
+            AppliedUserRepository appliedUserRepository
+    ) {
         this.couponRepository = couponRepository;
         this.couponCountRepository = couponCountRepository;
         this.couponCreateProducer = couponCreateProducer;
+        this.appliedUserRepository = appliedUserRepository;
     }
 
     public void apply(Long userId) {
+        // 한명의 유저는 1개의 쿠폰만 등록 가능
+        // redis 의 set 기능을 활용
+        Long apply = appliedUserRepository.add(userId);
+
+        if(apply != 1) {
+            return;
+        }
+
         Long count = couponCountRepository.increment();
 
         if(count > 100) {
